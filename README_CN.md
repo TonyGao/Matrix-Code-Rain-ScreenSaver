@@ -15,7 +15,9 @@
 ## 🎬 效果演示
 
 <p align="center">
-  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">打开演示视频（demo.mp4）</a>
+  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">
+    <img src="./demo.gif" alt="效果演示" width="100%" />
+  </a>
 </p>
 
 GitHub 的 README 不支持内嵌视频预览，请通过上面的链接进行预览或下载。
