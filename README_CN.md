@@ -37,13 +37,16 @@
 
 ## 🚀 快速安装
 
-### 方法一：直接下载
-1. 前往 [Releases](https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/releases) 页面下载最新的 `.saver` 文件。
-2. 双击 `Matrix Code Rain.saver`，系统会提示是否安装。
-3. 在“系统设置” -> “屏幕保护程序”中选择 “Matrix Code Rain”。
+### 方法一：从 Release 下载（推荐）
+1. 前往 [Releases](https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/releases) 页面。
+2. 下载最新的 `Matrix Code Rain.saver.zip` 文件。
+3. 解压后双击 `Matrix Code Rain.saver`，系统会提示是否安装。
+4. 在“系统设置” -> “屏幕保护程序”中选择 “Matrix Code Rain”。
 
-### 方法二：一键脚本安装
-如果你已经克隆了仓库，可以使用提供的脚本一键编译并安装：
+> **注意**：如果 Release 页面暂无文件，请使用**方法二**通过源码编译安装。
+
+### 方法二：一键脚本安装（源码编译）
+如果你已安装 Xcode，可以使用提供的脚本一键编译并安装：
 ```bash
 git clone https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver.git
 cd Matrix-Code-Rain-ScreenSaver

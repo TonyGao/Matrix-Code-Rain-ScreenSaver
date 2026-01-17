@@ -7,7 +7,7 @@
 > **🚀 This is a Vibe Coding project**
 >
 > This project is purely vibe-driven, chasing the ultimate visual atmosphere. Feel free to fork this repo, inject your own creativity, and keep the vibe coding going!
-> 
+>
 > [中文文档 (Chinese Documentation)](./README_CN.md)
 
 ---
@@ -37,13 +37,19 @@ An advanced Matrix digital rain screensaver for macOS. It features multi-layered
 
 ## 🚀 Quick Installation
 
-### Method 1: Direct Download
-1. Go to the [Releases](https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/releases) page and download the latest `.saver` file.
-2. Double-click `Matrix Code Rain.saver`. The system will prompt you to install.
-3. Select "Matrix Code Rain" in **System Settings** -> **Screen Saver**.
+### Method 1: Download from Releases (Recommended)
 
-### Method 2: One-Click Installation Script
-If you've cloned the repository, you can build and install in one step:
+1. Go to the [Releases](https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/releases) page.
+2. Download the latest `Matrix Code Rain.saver.zip` file.
+3. Unzip the file, then double-click `Matrix Code Rain.saver`. The system will prompt you to install.
+4. Select "Matrix Code Rain" in **System Settings** -> **Screen Saver**.
+
+> **Note**: If the Releases page is empty, please use **Method 2** to build from source.
+
+### Method 2: One-Click Installation Script (Build from Source)
+
+If you have Xcode installed, you can build and install in one step:
+
 ```bash
 git clone https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver.git
 cd Matrix-Code-Rain-ScreenSaver
@@ -56,15 +62,19 @@ chmod +x install_and_refresh.sh
 ## 🛠 Development & Build
 
 ### Requirements
+
 - macOS 11.0 or later
 - Xcode 12.0 or later
 
 ### Build Steps
+
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver.git
    cd Matrix-Code-Rain-ScreenSaver
    ```
+
 2. Open `Matrix Code Rain/Matrix Code Rain.xcodeproj` with Xcode.
 3. Select the `Matrix Code Rain` scheme and target `My Mac`.
 4. Press `Cmd + B` to build.
@@ -75,6 +85,7 @@ chmod +x install_and_refresh.sh
 ## 📝 Customization
 
 You can easily customize the following in `Matrix_Code_RainView.m`:
+
 - **Poem List**: Modify the `poems` array in the `randomPoem` function.
 - **AI Quote List**: Modify the `aiQuotes` array in the `initializeMatrix` function.
 - **Speed & Density**: Adjust the speed logic in the `MatrixStream` class.
