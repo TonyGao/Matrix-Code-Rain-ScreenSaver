@@ -14,10 +14,11 @@
 
 ## 🎬 Demo
 
-GitHub does not render inline videos in README. Watch the demo on:
+Demo screenshot:
 
-- YouTube: (TBD)
-- Bilibili: (TBD)
+<p align="center">
+  <img src="./demo.jpg" alt="Demo screenshot" width="100%" />
+</p>
 
 An advanced Matrix digital rain screensaver for macOS. It features multi-layered depth, Chinese classics integration, random AI quotes, and "glitch" streams.
 
