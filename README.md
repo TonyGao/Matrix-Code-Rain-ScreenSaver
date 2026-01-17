@@ -15,8 +15,10 @@
 ## 🎬 Demo
 
 <p align="center">
-  <video src="demo.mp4" width="100%" controls autoplay loop muted></video>
+  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">Open demo video (demo.mp4)</a>
 </p>
+
+GitHub does not render inline videos in README. Use the link above to preview or download.
 
 An advanced Matrix digital rain screensaver for macOS. It features multi-layered depth, Chinese classics integration, random AI quotes, and "glitch" streams.
 

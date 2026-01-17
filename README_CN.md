@@ -5,9 +5,9 @@
 ![macOS: 11.0+](https://img.shields.io/badge/macOS-11.0+-brightgreen?style=flat-square)
 
 > **🚀 这是一个 Vibe Coding 项目 | This is a Vibe Coding project**
-> 
+>
 > 本项目纯粹由灵感驱动，追求极致的视觉氛围。欢迎大家 Fork 本仓库，加入你自己的创意，继续进行 Vibe 改造！
-> 
+>
 > [English Documentation](./README.md)
 
 ---
@@ -15,8 +15,10 @@
 ## 🎬 效果演示
 
 <p align="center">
-  <video src="demo.mp4" width="100%" controls autoplay loop muted></video>
+  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">打开演示视频（demo.mp4）</a>
 </p>
+
+GitHub 的 README 不支持内嵌视频预览，请通过上面的链接进行预览或下载。
 
 一款为 macOS 设计的高级黑客帝国代码雨屏幕保护程序。它不仅还原了经典的绿色数字雨效果，还融入了中文古诗词、随机警语、多层景深以及炫酷的红色“故障”流。
 
@@ -44,6 +46,7 @@
 ## 🚀 快速安装
 
 ### 方法一：从 Release 下载（推荐）
+
 1. 前往 [Releases](https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/releases) 页面。
 2. 下载最新的 `Matrix Code Rain.saver.zip` 文件。
 3. 解压后双击 `Matrix Code Rain.saver`，系统会提示是否安装。
@@ -52,7 +55,9 @@
 > **注意**：如果 Release 页面暂无文件，请使用**方法二**通过源码编译安装。
 
 ### 方法二：一键脚本安装（源码编译）
+
 如果你已安装 Xcode，可以使用提供的脚本一键编译并安装：
+
 ```bash
 git clone https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver.git
 cd Matrix-Code-Rain-ScreenSaver
@@ -65,15 +70,19 @@ chmod +x install_and_refresh.sh
 ## 🛠 开发与编译
 
 ### 运行环境
+
 - macOS 11.0 或更高版本
 - Xcode 12.0 或更高版本
 
 ### 编译步骤
+
 1. 克隆仓库：
+
    ```bash
    git clone https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver.git
    cd Matrix-Code-Rain-ScreenSaver
    ```
+
 2. 使用 Xcode 打开 `Matrix Code Rain/Matrix Code Rain.xcodeproj`。
 3. 选择 `Matrix Code Rain` Scheme，目标选择 `My Mac`。
 4. 按下 `Cmd + B` 进行编译。
@@ -84,6 +93,7 @@ chmod +x install_and_refresh.sh
 ## 📝 配置文件与自定义
 
 你可以在 `Matrix_Code_RainView.m` 中轻松修改以下内容：
+
 - **古诗词列表**: 修改 `randomPoem` 函数中的 `poems` 数组。
 - **警语列表**: 修改 `initializeMatrix` 函数中的 `aiQuotes` 数组。
 - **流速与密度**: 调整 `MatrixStream` 类中的速度计算逻辑。
