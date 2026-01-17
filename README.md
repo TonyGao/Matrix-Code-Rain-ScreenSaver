@@ -14,13 +14,10 @@
 
 ## 🎬 Demo
 
-<p align="center">
-  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">
-    <img src="./demo.gif" alt="Demo" width="100%" />
-  </a>
-</p>
+GitHub does not render inline videos in README. Watch the demo on:
 
-GitHub does not render inline videos in README. Use the link above to preview or download.
+- YouTube: (TBD)
+- Bilibili: (TBD)
 
 An advanced Matrix digital rain screensaver for macOS. It features multi-layered depth, Chinese classics integration, random AI quotes, and "glitch" streams.
 

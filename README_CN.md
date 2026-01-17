@@ -14,13 +14,10 @@
 
 ## 🎬 效果演示
 
-<p align="center">
-  <a href="https://github.com/TonyGao/Matrix-Code-Rain-ScreenSaver/raw/main/demo.mp4">
-    <img src="./demo.gif" alt="效果演示" width="100%" />
-  </a>
-</p>
+GitHub 的 README 不支持内嵌视频预览，演示视频请前往：
 
-GitHub 的 README 不支持内嵌视频预览，请通过上面的链接进行预览或下载。
+- YouTube：（待补充）
+- B 站：（待补充）
 
 一款为 macOS 设计的高级黑客帝国代码雨屏幕保护程序。它不仅还原了经典的绿色数字雨效果，还融入了中文古诗词、随机警语、多层景深以及炫酷的红色“故障”流。
 
