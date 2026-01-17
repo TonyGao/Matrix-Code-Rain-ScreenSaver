@@ -12,6 +12,12 @@
 
 ---
 
+## 🎬 Demo
+
+<p align="center">
+  <video src="demo.mp4" width="100%" controls autoplay loop muted></video>
+</p>
+
 An advanced Matrix digital rain screensaver for macOS. It features multi-layered depth, Chinese classics integration, random AI quotes, and "glitch" streams.
 
 ---

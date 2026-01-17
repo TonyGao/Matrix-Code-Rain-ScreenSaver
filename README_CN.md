@@ -12,6 +12,12 @@
 
 ---
 
+## 🎬 效果演示
+
+<p align="center">
+  <video src="demo.mp4" width="100%" controls autoplay loop muted></video>
+</p>
+
 一款为 macOS 设计的高级黑客帝国代码雨屏幕保护程序。它不仅还原了经典的绿色数字雨效果，还融入了中文古诗词、随机警语、多层景深以及炫酷的红色“故障”流。
 
 ---
