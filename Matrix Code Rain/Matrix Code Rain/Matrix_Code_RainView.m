@@ -343,8 +343,13 @@
     CGFloat screenHeight = self.bounds.size.height;
     CGFloat maxTextWidth = screenWidth * 0.85; // Allow wrapping within 85% width
     
-    // Create an image context to render the text
-    CGFloat fontSize = 200.0;
+    // Dynamic font size calculation
+    // Base heuristic: ScreenWidth / 6.0 seems reasonable for a 4-8 char quote on one line,
+    // or wrapped 2 lines.
+    CGFloat fontSize = screenWidth / 6.0;
+    if (fontSize > 200.0) fontSize = 200.0; // Cap max size
+    if (fontSize < 40.0) fontSize = 40.0;   // Min size limit
+    
     // Use standard Chinese-capable heavy font (PingFang SC)
     NSFont *largeFont = [NSFont fontWithName:@"PingFangSC-Semibold" size:fontSize];
     if (!largeFont) largeFont = [NSFont boldSystemFontOfSize:fontSize];
@@ -364,9 +369,15 @@
                                              options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading
                                           attributes:attrs];
     
-    // Safety check: if text is too tall, scale down
-    if (boundingRect.size.height > screenHeight * 0.8) {
-        fontSize = fontSize * (screenHeight * 0.8 / boundingRect.size.height);
+    CGFloat maxHeight = screenHeight * 0.8;
+    
+    // Check if we need to scale down (height overflow)
+    if (boundingRect.size.height > maxHeight) {
+        CGFloat scale = maxHeight / boundingRect.size.height;
+        fontSize *= scale;
+        
+        if (fontSize < 20.0) fontSize = 20.0; // Hard min limit
+        
         largeFont = [NSFont fontWithName:@"PingFangSC-Semibold" size:fontSize];
         if (!largeFont) largeFont = [NSFont boldSystemFontOfSize:fontSize];
         
@@ -399,6 +410,11 @@
     // Grid size for the mosaic blocks
     CGFloat gridSize = 12.0;
     
+    // Calculate scale factor (handling Retina displays)
+    // bitmap.pixelsWide might be 2x or 3x of textSize.width
+    CGFloat scaleX = (CGFloat)bitmap.pixelsWide / textSize.width;
+    CGFloat scaleY = (CGFloat)bitmap.pixelsHigh / textSize.height;
+    
     // Center the text on screen
     CGFloat startX = (screenWidth - textSize.width) / 2.0;
     CGFloat startY = (screenHeight - textSize.height) / 2.0;
@@ -409,10 +425,46 @@
     for (NSInteger y = 0; y < rows; y++) {
         for (NSInteger x = 0; x < cols; x++) {
             // Check pixel in the center of the grid cell
-            NSInteger pixelX = x * gridSize + gridSize/2;
-            NSInteger pixelY = (rows - 1 - y) * gridSize + gridSize/2; // Flip Y for image coords
+            // We must map point coordinates to pixel coordinates
+            NSInteger pointX = x * gridSize + gridSize/2;
+            NSInteger pointY = y * gridSize + gridSize/2; // Point coordinates (0 is bottom-left relative to image rect?)
+            // Actually drawing in lockFocus uses standard coord system (0,0 bottom-left usually).
+            // But we need to be careful about bitmap data layout.
+            // Let's assume standard mapping first, but apply scale.
             
-            if (pixelX >= bitmap.pixelsWide || pixelY >= bitmap.pixelsHigh) continue;
+            NSInteger pixelX = pointX * scaleX;
+            // NSImage coordinate (0,0) is bottom-left, but bitmap data usually starts top-left?
+            // Let's rely on standard Quartz coordinate flipping if needed.
+            // Actually, for NSBitmapImageRep from TIFF, (0,0) is usually top-left of the data buffer?
+            // Let's try matching the flipped logic again if it was upside down before.
+            // If user said "inverted" before, it means my previous (rows - 1 - y) was WRONG (or right?).
+            // Wait, previous code:
+            // pixelY = (rows - 1 - y) ... -> User said "inverted".
+            // Then I changed to:
+            // pixelY = y ... -> User said "inverted" (Wait, did they say inverted AFTER I changed it? Yes.)
+            // So (rows - 1 - y) WAS correct? Or y is correct?
+            // User said "警示词成了倒着的了" AFTER I changed it to `y * gridSize`.
+            // So `y * gridSize` (bottom-up logic) made it upside down.
+            // That means bitmap data is Top-Down.
+            // So we need (rows - 1 - y) logic to flip it back upright?
+            // NO. If I iterate y from 0..rows (Top..Bottom visually on screen),
+            // and I want to sample Top..Bottom from image.
+            // If image data is Top-Down (0 is top), then pixelY should just be y * scale.
+            // If image data is Bottom-Up (0 is bottom), then pixelY should be (height - y) * scale.
+            
+            // Let's revert to the logic that matches screen Y (0 at bottom) to Image Y.
+            // Screen: 0 is bottom.
+            // Image Draw: 0 is bottom (NSImage).
+            // Bitmap Data: 0 is Top (usually).
+            // So if I want to draw at Screen Y=0 (Bottom), I need Image Pixel Y=Max (Bottom).
+            // So PixelY should be (ImageHeight - PointY * scale).
+            
+            NSInteger pixelY = (textSize.height - pointY) * scaleY; 
+            // Clamp
+            if (pixelY < 0) pixelY = 0;
+            if (pixelY >= bitmap.pixelsHigh) pixelY = bitmap.pixelsHigh - 1;
+            
+            if (pixelX >= bitmap.pixelsWide) continue;
             
             NSColor *color = [bitmap colorAtX:pixelX y:pixelY];
             if (color.brightnessComponent > 0.5) {

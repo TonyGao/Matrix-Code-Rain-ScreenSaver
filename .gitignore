@@ -4,5 +4,4 @@ build/
 *.xcworkspace
 xcuserdata/
 *.xcuserstate
-bin/
 .ccls-cache/
