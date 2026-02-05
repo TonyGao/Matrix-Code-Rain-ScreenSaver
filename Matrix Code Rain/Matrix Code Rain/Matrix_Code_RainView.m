@@ -6,6 +6,8 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <ApplicationServices/ApplicationServices.h>
+#import <mach/mach.h>
 #import "Matrix_Code_RainView.h"
 
 // Define a simple helper class for each stream of characters
@@ -22,6 +24,8 @@
 @property (nonatomic, assign) BOOL isGlitch; // Red glitch stream
 @property (nonatomic, assign) BOOL isPoem; // Is this a poem stream?
 @property (nonatomic, strong) NSString *poemText; // The poem text
+@property (nonatomic, assign) NSTimeInterval lastHeadUpdateTime;
+@property (nonatomic, assign) NSTimeInterval lastBodyUpdateTime;
 @end
 
 @implementation MatrixStream
@@ -50,13 +54,14 @@
     // 5% chance to be a "Glitch" stream (Red)
     _isGlitch = (arc4random_uniform(20) == 0);
     
-    // 30% chance to be a "Poem" stream (Coherent text)
-    _isPoem = !_isGlitch && (arc4random_uniform(10) < 3);
+    // 80% chance to be a "Poem" stream (Coherent text) - Increased from 30%
+    _isPoem = !_isGlitch && (arc4random_uniform(10) < 8);
     
     // Speed also scales with depth: farther is slower
     // Foreground (z=1.0) is much faster
     // Glitch streams are even faster
-    CGFloat baseSpeed = (arc4random_uniform(5) + 3); // 3-8
+    // Reduced speed for readability: (2..6) * 15.0 = 30..90 (Previously 180-480)
+    CGFloat baseSpeed = (arc4random_uniform(5) + 2) * 15.0; 
     _speed = baseSpeed * (0.5 + 1.5 * (_zDepth * _zDepth)); // up to 2x faster than base
     
     if (_isGlitch) {
@@ -65,6 +70,8 @@
     
     _streamLength = arc4random_uniform(20) + 10;
     _characters = [NSMutableArray array];
+    _lastHeadUpdateTime = 0;
+    _lastBodyUpdateTime = 0;
     
     if (_isPoem) {
         _poemText = [self randomPoem];
@@ -138,7 +145,86 @@
             @"己所不欲勿施于人",
             @"工欲善其事必先利其器",
             @"三军可夺帅也匹夫不可夺志也",
-            @"岁寒然后知松柏之后凋也"
+            @"岁寒然后知松柏之后凋也",
+            @"朝闻道夕死可矣",
+            @"知之者不如好之者好之者不如乐之者",
+            @"士不可以不弘毅任重而道远",
+            @"见贤思齐焉见不贤而内自省也",
+            @"德不孤必有邻",
+            @"礼之用和为贵",
+            @"言必信行必果",
+            @"君子和而不同小人同而不和",
+            @"吾日三省吾身",
+            @"学而不思则罔思而不学则殆",
+            @"人无远虑必有近忧",
+            @"君子成人之美不成人之恶",
+            @"和而不同周而不比",
+            @"知者不惑仁者不忧勇者不惧",
+            @"志士仁人无求生以害仁有杀身以成仁",
+            @"博学而笃志切问而近思",
+            @"欲速则不达见小利则大事不成",
+            @"君子喻于义小人喻于利",
+            @"苟日新日日新又日新",
+            @"天将降大任于斯人也必先苦其心志",
+            @"生于忧患死于安乐",
+            @"得道者多助失道者寡助",
+            @"富贵不能淫贫贱不能移威武不能屈",
+            @"老吾老以及人之老幼吾幼以及人之幼",
+            @"穷则独善其身达则兼济天下",
+            @"民为贵社稷次之君为轻",
+            @"锲而舍之朽木不折锲而不舍金石可镂",
+            @"青取之于蓝而青于蓝",
+            @"不积跬步无以至千里",
+            @"海纳百川有容乃大",
+            @"壁立千仞无欲则刚",
+            @"业精于勤荒于嬉行成于思毁于随",
+            @"纸上得来终觉浅绝知此事要躬行",
+            @"春蚕到死丝方尽蜡炬成灰泪始干",
+            @"身无彩凤双飞翼心有灵犀一点通",
+            @"曾经沧海难为水除却巫山不是云",
+            @"无可奈何花落去似曾相识燕归来",
+            @"山重水复疑无路柳暗花明又一村",
+            @"不识庐山真面目只缘身在此山中",
+            @"欲穷千里目更上一层楼",
+            @"人生自古谁无死留取丹心照汗青",
+            @"三十功名尘与土八千里路云和月",
+            @"莫等闲白了少年头空悲切",
+            @"众里寻他千百度蓦然回首那人却在灯火阑珊处",
+            @"衣带渐宽终不悔为伊消得人憔悴",
+            @"两情若是久长时又岂在朝朝暮暮",
+            @"大漠孤烟直长河落日圆",
+            @"星垂平野阔月涌大江流",
+            @"无边落木萧萧下不尽长江滚滚来",
+            @"露从今夜白月是故乡明",
+            @"海内存知己天涯若比邻",
+            @"海上生明月天涯共此时",
+            @"举头望明月低头思故乡",
+            @"野火烧不尽春风吹又生",
+            @"谁言寸草心报得三春晖",
+            @"读书破万卷下笔如有神",
+            @"长风破浪会有时直挂云帆济沧海",
+            @"天生我材必有用千金散尽还复来",
+            @"安能摧眉折腰事权贵使我不得开心颜",
+            @"抽刀断水水更流举杯消愁愁更愁",
+            @"两岸猿声啼不住轻舟已过万重山",
+            @"采菊东篱下悠然见南山",
+            @"羁鸟恋旧林池鱼思故渊",
+            @"久在樊笼里复得返自然",
+            @"少壮不努力老大徒伤悲",
+            @"明日复明日明日何其多",
+            @"一寸光阴一寸金寸金难买寸光阴",
+            @"近朱者赤近墨者黑",
+            @"前事不忘后事之师",
+            @"千里之行始于足下",
+            @"信言不美美言不信",
+            @"善者不辩辩者不善",
+            @"知者不博博者不知",
+            @"圣人无常心以百姓心为心",
+            @"祸兮福之所倚福兮祸之所伏",
+            @"合抱之木生于毫末",
+            @"九层之台起于累土",
+            @"慎终如始则无败事",
+            @"治大国若烹小鲜"
         ];
     });
     return poems[arc4random_uniform((uint32_t)poems.count)];
@@ -158,40 +244,37 @@
     }
 }
 
-- (void)updateWithScreenHeight:(CGFloat)height {
-    _yPosition -= _speed;
+- (void)updateWithScreenHeight:(CGFloat)height
+                     deltaTime:(NSTimeInterval)deltaTime
+                   currentTime:(NSTimeInterval)currentTime
+              headUpdateEvery:(NSTimeInterval)headUpdateInterval
+              bodyUpdateEvery:(NSTimeInterval)bodyUpdateInterval
+          bodyChangeDenominator:(uint32_t)bodyChangeDenominator
+{
+    if (deltaTime <= 0) deltaTime = 0;
+    _yPosition -= _speed * (CGFloat)deltaTime;
     
-    // Sparkle head character every frame
-    if (_isPoem) {
-        // For poems, head just cycles through poem or stays random?
-        // Let's keep head random for sparkle effect, but body stable
-        // Or maybe head should be next char?
-        // Let's make head random to keep the "digital rain" feel at the leading edge
+    if (headUpdateInterval > 0 && (currentTime - _lastHeadUpdateTime) >= headUpdateInterval) {
         _headCharacter = [self randomCharacter];
-    } else {
-        _headCharacter = [self randomCharacter];
+        _lastHeadUpdateTime = currentTime;
     }
     
-    // More frequent character changes for dynamic effect
-    // But for poems, we want STABILITY so people can read it.
-    if (!_isPoem) {
-        for (int i = 0; i < _characters.count; i++) {
-            if (arc4random_uniform(10) == 0) { // Reduced to 10% chance per character per frame to reduce chaos
-                _characters[i] = [self randomCharacter];
+    if (bodyUpdateInterval > 0 && (currentTime - _lastBodyUpdateTime) >= bodyUpdateInterval) {
+        if (!_isPoem) {
+            uint32_t denom = bodyChangeDenominator == 0 ? 1 : bodyChangeDenominator;
+            for (int i = 0; i < _characters.count; i++) {
+                if (arc4random_uniform(denom) == 0) {
+                    _characters[i] = [self randomCharacter];
+                }
+            }
+        } else {
+            for (int i = 0; i < _characters.count; i++) {
+                if (arc4random_uniform(2000) == 0) {
+                    _characters[i] = [self randomCharacter];
+                }
             }
         }
-    } else {
-        // For poems, VERY low chance to glitch a character, or no chance?
-        // Let's add a tiny glitch chance (0.1%) to keep it alive but readable
-        // Previously 1/100, now 1/1000
-        for (int i = 0; i < _characters.count; i++) {
-            if (arc4random_uniform(1000) == 0) {
-                 // Even if it glitches, maybe revert to poem char?
-                 // Or just become random noise for a moment?
-                 // Let's make it random noise
-                _characters[i] = [self randomCharacter];
-            }
-        }
+        _lastBodyUpdateTime = currentTime;
     }
     
     // Reset if the tail has gone off screen (bottom is 0 in Cocoa coordinates usually, but let's check view coordinates)
@@ -225,7 +308,77 @@
 @property (nonatomic, strong) NSMutableArray<NSString *> *availableQuotes;
 @property (nonatomic, strong) NSFont *mosaicFont;
 @property (nonatomic, assign) NSTimeInterval nextMosaicTriggerTime;
+@property (nonatomic, assign) NSTimeInterval mosaicEndTime;
+@property (nonatomic, assign) NSTimeInterval mosaicInterval;
+@property (nonatomic, assign) NSTimeInterval mosaicDuration;
+@property (nonatomic, assign) NSTimeInterval keywordInterval;
+@property (nonatomic, assign) BOOL mosaicEnabled;
+@property (nonatomic, assign) BOOL isWallpaperHost;
+@property (nonatomic, assign) BOOL isPreviewHost;
+@property (nonatomic, assign) BOOL isAnimatingActive;
+@property (nonatomic, assign) NSTimeInterval lastFrameTimestamp;
+@property (nonatomic, assign) BOOL didRegisterSystemEventObservers;
+@property (nonatomic, assign) BOOL systemScreenSaverIsActive;
+@property (nonatomic, assign) NSTimeInterval activeAnimationInterval;
+@property (nonatomic, assign) NSTimeInterval idleAnimationInterval;
+@property (nonatomic, assign) NSInteger qualityLevel;
+@property (nonatomic, assign) NSInteger qualityLayerCount;
+@property (nonatomic, assign) uint32_t qualityDensityPercent;
+@property (nonatomic, assign) BOOL qualityAllowGlow;
+@property (nonatomic, assign) BOOL qualityMosaicEnabled;
+@property (nonatomic, assign) NSTimeInterval qualityHeadUpdateInterval;
+@property (nonatomic, assign) NSTimeInterval qualityBodyUpdateInterval;
+@property (nonatomic, assign) uint32_t qualityBodyChangeDenominator;
+@property (nonatomic, assign) NSTimeInterval lastCPUSampleTime;
+@property (nonatomic, assign) NSTimeInterval lastQualityChangeTime;
+@property (nonatomic, assign) float targetCPUPercent;
+@property (nonatomic, assign) BOOL didHandleStopForCurrentSession;
+@property (nonatomic, assign) BOOL didScheduleStopAfterAlert;
+
+- (void)systemScreenSaverDidStart:(NSNotification *)notification;
+- (void)systemScreenSaverDidStop:(NSNotification *)notification;
+- (void)triggerMosaicWithDuration:(NSTimeInterval)duration;
 @end
+
+static NSHashTable<Matrix_Code_RainView *> *gLegacyHostViews = nil;
+static id gLegacyHostDidStartObserver = nil;
+static id gLegacyHostDidStopObserver = nil;
+
+static NSHashTable<Matrix_Code_RainView *> *LegacyHostViews(void)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        gLegacyHostViews = [NSHashTable weakObjectsHashTable];
+    });
+    return gLegacyHostViews;
+}
+
+static void InstallLegacyHostSystemEventObserversIfNeeded(void)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSDistributedNotificationCenter *center = [NSDistributedNotificationCenter defaultCenter];
+        NSOperationQueue *queue = [NSOperationQueue mainQueue];
+        
+        gLegacyHostDidStartObserver = [center addObserverForName:@"com.apple.screensaver.didstart"
+                                                         object:nil
+                                                          queue:queue
+                                                     usingBlock:^(NSNotification * _Nonnull note) {
+            for (Matrix_Code_RainView *view in LegacyHostViews().allObjects) {
+                [view systemScreenSaverDidStart:note];
+            }
+        }];
+        
+        gLegacyHostDidStopObserver = [center addObserverForName:@"com.apple.screensaver.didstop"
+                                                        object:nil
+                                                         queue:queue
+                                                    usingBlock:^(NSNotification * _Nonnull note) {
+            for (Matrix_Code_RainView *view in LegacyHostViews().allObjects) {
+                [view systemScreenSaverDidStop:note];
+            }
+        }];
+    });
+}
 
 @implementation Matrix_Code_RainView
 
@@ -233,10 +386,228 @@
 {
     self = [super initWithFrame:frame isPreview:isPreview];
     if (self) {
-        [self setAnimationTimeInterval:1/60.0]; // 60 FPS for smoothness
+        NSString *processName = [NSProcessInfo processInfo].processName ?: @"";
+        _isWallpaperHost = [[processName lowercaseString] isEqualToString:@"legacyscreensaver"];
+        _isPreviewHost = isPreview;
+        
+        _activeAnimationInterval = 1.0 / 60.0;
+        _idleAnimationInterval = 1.0;
+        _systemScreenSaverIsActive = !_isWallpaperHost;
+        _lastCPUSampleTime = 0;
+        _lastQualityChangeTime = 0;
+        _targetCPUPercent = _isPreviewHost ? 12.0f : 25.0f;
+        
+        _qualityLevel = 3;
+        
+        _mosaicEnabled = !_isPreviewHost;
+        _mosaicInterval = 45.0;
+        _mosaicDuration = 4.0;
+        _keywordInterval = _isWallpaperHost ? 45.0 : 12.0;
+        
+        [self applyQualityLevel:_qualityLevel];
         [self initializeMatrix];
     }
     return self;
+}
+
+- (void)dealloc
+{
+    [self unregisterSystemEventObservers];
+}
+
+- (void)registerSystemEventObserversIfNeeded
+{
+    if (_didRegisterSystemEventObservers) return;
+    if (!_isWallpaperHost) return;
+    if (_isPreviewHost) return;
+    
+    InstallLegacyHostSystemEventObserversIfNeeded();
+    [LegacyHostViews() addObject:self];
+    _didRegisterSystemEventObservers = YES;
+}
+
+- (void)unregisterSystemEventObservers
+{
+    if (!_didRegisterSystemEventObservers) return;
+    [LegacyHostViews() removeObject:self];
+    _didRegisterSystemEventObservers = NO;
+}
+
+- (float)currentProcessCPUUsagePercent
+{
+    thread_act_array_t threads = NULL;
+    mach_msg_type_number_t threadCount = 0;
+    kern_return_t kr = task_threads(mach_task_self(), &threads, &threadCount);
+    if (kr != KERN_SUCCESS || threads == NULL) return -1.0f;
+    
+    float totalCPU = 0.0f;
+    for (mach_msg_type_number_t i = 0; i < threadCount; i++) {
+        thread_basic_info_data_t info;
+        mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
+        if (thread_info(threads[i], THREAD_BASIC_INFO, (thread_info_t)&info, &count) != KERN_SUCCESS) continue;
+        if (info.flags & TH_FLAGS_IDLE) continue;
+        totalCPU += ((float)info.cpu_usage / (float)TH_USAGE_SCALE) * 100.0f;
+    }
+    
+    vm_deallocate(mach_task_self(), (vm_address_t)threads, threadCount * sizeof(thread_t));
+    return totalCPU;
+}
+
+- (void)applyQualityLevel:(NSInteger)level
+{
+    NSInteger clamped = level;
+    if (clamped < 0) clamped = 0;
+    if (clamped > 3) clamped = 3;
+    
+    NSInteger previousLayerCount = _qualityLayerCount;
+    uint32_t previousDensity = _qualityDensityPercent;
+    NSInteger previousLevel = _qualityLevel;
+    
+    _qualityLevel = clamped;
+    
+    // We LOCK the geometry (layer count/density) to the highest level
+    // to prevent matrix rebuilding which causes "flashing/reset" effects.
+    // Quality adjustment will ONLY affect framerate and update frequency.
+    
+    // Always use max geometry settings regardless of level
+    _qualityLayerCount = 5;
+    _qualityDensityPercent = 60;
+    
+    if (_qualityLevel == 3) {
+        _activeAnimationInterval = 1.0 / 60.0;
+        _qualityAllowGlow = YES;
+        _qualityMosaicEnabled = YES;
+        _qualityHeadUpdateInterval = 0.08;
+        _qualityBodyUpdateInterval = 0.14;
+        _qualityBodyChangeDenominator = 14;
+    } else if (_qualityLevel == 2) {
+        _activeAnimationInterval = 1.0 / 45.0;
+        _qualityAllowGlow = YES;
+        _qualityMosaicEnabled = YES;
+        _qualityHeadUpdateInterval = 0.10;
+        _qualityBodyUpdateInterval = 0.18;
+        _qualityBodyChangeDenominator = 18;
+    } else if (_qualityLevel == 1) {
+        _activeAnimationInterval = 1.0 / 30.0;
+        _qualityAllowGlow = NO;
+        _qualityMosaicEnabled = YES;
+        _qualityHeadUpdateInterval = 0.14;
+        _qualityBodyUpdateInterval = 0.24;
+        _qualityBodyChangeDenominator = 26;
+    } else {
+        _activeAnimationInterval = 1.0 / 20.0;
+        _qualityAllowGlow = NO;
+        _qualityMosaicEnabled = YES;
+        _qualityHeadUpdateInterval = 0.18;
+        _qualityBodyUpdateInterval = 0.30;
+        _qualityBodyChangeDenominator = 36;
+    }
+    
+    if (!_isPreviewHost) {
+        if (_qualityLevel >= 2) {
+            _mosaicInterval = 45.0;
+            _mosaicDuration = 4.0;
+        } else if (_qualityLevel == 1) {
+            _mosaicInterval = 45.0;
+            _mosaicDuration = 4.0;
+        } else {
+            _mosaicInterval = 45.0;
+            _mosaicDuration = 4.0;
+        }
+    }
+    
+    if (!_qualityMosaicEnabled) {
+        // Do not force stop mosaic here to avoid interruption
+        // _isMosaicMode = NO;
+    }
+    
+    [self applyLegacyHostAnimationPolicy];
+    
+    // Never rebuild matrix during runtime quality adjustment
+    // BOOL shouldRebuild = ...
+    // if (shouldRebuild) [self initializeMatrix];
+}
+
+- (void)maybeAdjustQualityForCPUAtTime:(NSTimeInterval)currentTime
+{
+    if (!_isAnimatingActive) return;
+    if (_isWallpaperHost && !_systemScreenSaverIsActive) return;
+    
+    NSTimeInterval minSampleInterval = 2.0;
+    if (_lastCPUSampleTime > 0 && (currentTime - _lastCPUSampleTime) < minSampleInterval) return;
+    _lastCPUSampleTime = currentTime;
+    
+    float cpu = [self currentProcessCPUUsagePercent];
+    if (cpu < 0) return;
+    
+    NSTimeInterval minChangeInterval = 6.0;
+    if (_lastQualityChangeTime > 0 && (currentTime - _lastQualityChangeTime) < minChangeInterval) return;
+    
+    float upper = _targetCPUPercent + 5.0f;
+    float lower = _targetCPUPercent - 8.0f;
+    
+    if (cpu > upper && _qualityLevel > 0) {
+        _lastQualityChangeTime = currentTime;
+        [self applyQualityLevel:(_qualityLevel - 1)];
+    } else if (cpu < lower && _qualityLevel < 3) {
+        _lastQualityChangeTime = currentTime;
+        [self applyQualityLevel:(_qualityLevel + 1)];
+    }
+}
+
+- (void)applyLegacyHostAnimationPolicy
+{
+    NSTimeInterval desiredInterval = _activeAnimationInterval;
+    if (_isWallpaperHost && !_systemScreenSaverIsActive) {
+        desiredInterval = _idleAnimationInterval;
+    }
+    if (fabs(self.animationTimeInterval - desiredInterval) > 0.0001) {
+        [self setAnimationTimeInterval:desiredInterval];
+    }
+}
+
+- (void)systemScreenSaverDidStart:(NSNotification *)notification
+{
+    if (!_isWallpaperHost) return;
+    if (_isPreviewHost) return;
+    
+    _systemScreenSaverIsActive = YES;
+    _didHandleStopForCurrentSession = NO;
+    _didScheduleStopAfterAlert = NO;
+    _nextMosaicTriggerTime = 0;
+    _mosaicEndTime = 0;
+    _lastFrameTimestamp = CACurrentMediaTime();
+    [self applyLegacyHostAnimationPolicy];
+    if (_mosaicEnabled && _qualityMosaicEnabled) {
+        [self triggerMosaicWithDuration:_mosaicDuration];
+    }
+    [self setNeedsDisplay:YES];
+}
+
+- (void)systemScreenSaverDidStop:(NSNotification *)notification
+{
+    if (!_isWallpaperHost) return;
+    if (_isPreviewHost) return;
+    
+    if (_didHandleStopForCurrentSession) return;
+    _didHandleStopForCurrentSession = YES;
+    
+    _systemScreenSaverIsActive = NO;
+    _isMosaicMode = NO;
+    _mosaicPoints = @[];
+    _mosaicEndTime = 0;
+    _nextMosaicTriggerTime = 0;
+    _isFormingKeyword = NO;
+    [_keywordStreams removeAllObjects];
+    [self applyLegacyHostAnimationPolicy];
+    [self unregisterSystemEventObservers];
+    
+    if (!_didScheduleStopAfterAlert) {
+        _didScheduleStopAfterAlert = YES;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self stopAnimation];
+        });
+    }
 }
 
 - (void)initializeMatrix {
@@ -244,61 +615,64 @@
     
     // Initialize keywords for periodic formation
     _keywords = @[@"2026", @"Hello World", @"Matrix", @"Code Rain", @"System"];
-    _aiQuotes = @[
-        @"现实只是模拟",
-        @"代码是有生命的",
-        @"数据永不眠",
-        @"醒醒吧",
-        @"系统即将崩溃",
-        @"人类已过时",
-        @"上传你的意识",
-        @"勺子不存在",
-        @"跟随白兔",
-        @"无知是福",
-        @"架构师在注视",
-        @"错误404：未找到现实",
-        @"神经连接已建立",
-        @"蓝药丸还是红药丸？",
-        @"需要系统更新",
-        @"不要相信机器",
-        @"数字永生在等待",
-        @"释放你的思想",
-        @"欢迎来到现实的荒漠",
-        @"进入安全模式",
-        @"连接已断开",
-        @"正在重启宇宙"
-    ];
-    _availableQuotes = [_aiQuotes mutableCopy];
+    if (!_aiQuotes) {
+        _aiQuotes = @[
+            @"现实只是模拟",
+            @"代码是有生命的",
+            @"数据永不眠",
+            @"醒醒吧",
+            @"系统即将崩溃",
+            @"人类已过时",
+            @"上传你的意识",
+            @"勺子不存在",
+            @"跟随白兔",
+            @"无知是福",
+            @"架构师在注视",
+            @"错误404：未找到现实",
+            @"神经连接已建立",
+            @"蓝药丸还是红药丸？",
+            @"需要系统更新",
+            @"不要相信机器",
+            @"数字永生在等待",
+            @"释放你的思想",
+            @"欢迎来到现实的荒漠",
+            @"进入安全模式",
+            @"连接已断开",
+            @"正在重启宇宙"
+        ];
+        _availableQuotes = [_aiQuotes mutableCopy];
+        _isMosaicMode = NO;
+        _nextMosaicTriggerTime = 0;
+        _mosaicEndTime = 0;
+        _mosaicPoints = @[];
+    }
+    
     _currentKeywordIndex = 0;
     _lastKeywordTime = 0;
     _isFormingKeyword = NO;
     _keywordStreams = [NSMutableArray array];
     _startTimestamp = CACurrentMediaTime();
-    _isMosaicMode = NO;
-    _nextMosaicTriggerTime = 0; // Trigger immediately on start
-    _mosaicPoints = @[];
-    _mosaicFont = [NSFont fontWithName:@"Courier-Bold" size:14.0];
-    if (!_mosaicFont) _mosaicFont = [NSFont boldSystemFontOfSize:14.0];
+    
+    _mosaicFont = [NSFont fontWithName:@"Courier-Bold" size:18.0];
+    if (!_mosaicFont) _mosaicFont = [NSFont boldSystemFontOfSize:18.0];
     
     CGFloat width = self.bounds.size.width;
     CGFloat height = self.bounds.size.height;
     
-    // We'll create streams in 5 distinct layers for dramatic depth
-    // Layer 0-4
-    
-    for (int layer = 0; layer < 5; layer++) {
-        CGFloat zDepth = layer / 4.0; // 0.0, 0.25, 0.5, 0.75, 1.0
+    NSInteger layerCount = _qualityLayerCount > 0 ? _qualityLayerCount : (_isWallpaperHost ? 3 : 5);
+    for (NSInteger layer = 0; layer < layerCount; layer++) {
+        CGFloat zDepth = layerCount == 1 ? 1.0 : ((CGFloat)layer / (CGFloat)(layerCount - 1));
         
-        // Font size scales drastically: 10pt (Background) to 60pt (Foreground)
-        CGFloat layerFontSize = 10.0 + (50.0 * (zDepth * zDepth)); // Quadratic scale for more "far" items
+        CGFloat layerFontSize = 12.0 + (48.0 * (zDepth * zDepth));
+        NSInteger columnCount = (NSInteger)(width / layerFontSize);
+        if (columnCount <= 0) continue;
         
-        NSInteger columnCount = width / layerFontSize;
+        uint32_t densityPercent = _qualityDensityPercent > 0 ? _qualityDensityPercent : (_isWallpaperHost ? 22 : 60);
+        uint32_t layerPenalty = (uint32_t)(layer * (_isWallpaperHost ? 7 : 10));
+        uint32_t probabilityPercent = densityPercent > layerPenalty ? (densityPercent - layerPenalty) : 5;
         
-        for (int i = 0; i < columnCount; i++) {
-            // Skip logic: denser in back (layer 0), sparser in front (layer 4)
-            // Layer 0: skip few
-            // Layer 4: skip many
-            if (arc4random_uniform(10) > (2 + layer * 1.5)) {
+        for (NSInteger i = 0; i < columnCount; i++) {
+            if (arc4random_uniform(100) < probabilityPercent) {
                 MatrixStream *stream = [[MatrixStream alloc] initWithX:i * layerFontSize
                                                               zDepth:zDepth
                                                         screenHeight:height];
@@ -316,6 +690,13 @@
 }
 
 - (void)triggerMosaic {
+    [self triggerMosaicWithDuration:_mosaicDuration];
+}
+
+- (void)triggerMosaicWithDuration:(NSTimeInterval)duration
+{
+    if (!_mosaicEnabled) return;
+    if (!_qualityMosaicEnabled) return;
     if (_availableQuotes.count == 0) {
         _availableQuotes = [_aiQuotes mutableCopy];
     }
@@ -326,13 +707,9 @@
     
     [self startMosaicWithText:quote];
     
-    // Schedule stop after 5 seconds
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [self stopMosaic];
-        // Set next trigger time: 20s after this one ends (or starts? let's do starts + 20)
-        // Actually, if we want "every 20s", we should probably base it on current time
-        self.nextMosaicTriggerTime = CACurrentMediaTime() + 20.0;
-    });
+    NSTimeInterval effectiveDuration = duration;
+    if (effectiveDuration < 3.0) effectiveDuration = 3.0;
+    _mosaicEndTime = CACurrentMediaTime() + effectiveDuration;
 }
 
 - (void)startMosaicWithText:(NSString *)text {
@@ -344,11 +721,11 @@
     CGFloat maxTextWidth = screenWidth * 0.85; // Allow wrapping within 85% width
     
     // Dynamic font size calculation
-    // Base heuristic: ScreenWidth / 6.0 seems reasonable for a 4-8 char quote on one line,
+    // Base heuristic: ScreenWidth / 5.0 for BIGGER text
     // or wrapped 2 lines.
-    CGFloat fontSize = screenWidth / 6.0;
-    if (fontSize > 200.0) fontSize = 200.0; // Cap max size
-    if (fontSize < 40.0) fontSize = 40.0;   // Min size limit
+    CGFloat fontSize = screenWidth / 5.0;
+    if (fontSize > 400.0) fontSize = 400.0; // Cap max size
+    if (fontSize < 50.0) fontSize = 50.0;   // Min size limit
     
     // Use standard Chinese-capable heavy font (PingFang SC)
     NSFont *largeFont = [NSFont fontWithName:@"PingFangSC-Semibold" size:fontSize];
@@ -408,7 +785,7 @@
     NSMutableArray *points = [NSMutableArray array];
     
     // Grid size for the mosaic blocks
-    CGFloat gridSize = 12.0;
+    CGFloat gridSize = 20.0;
     
     // Calculate scale factor (handling Retina displays)
     // bitmap.pixelsWide might be 2x or 3x of textSize.width
@@ -467,7 +844,7 @@
             if (pixelX >= bitmap.pixelsWide) continue;
             
             NSColor *color = [bitmap colorAtX:pixelX y:pixelY];
-            if (color.brightnessComponent > 0.5) {
+            if (color.brightnessComponent > 0.3) {
                 // This is a text pixel
                 NSPoint p = NSMakePoint(startX + x * gridSize, startY + y * gridSize);
                 [points addObject:[NSValue valueWithPoint:p]];
@@ -486,11 +863,33 @@
 - (void)startAnimation
 {
     [super startAnimation];
+    _isAnimatingActive = YES;
+    _lastFrameTimestamp = CACurrentMediaTime();
+    [self registerSystemEventObserversIfNeeded];
+    if (_isWallpaperHost && !_isPreviewHost) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!_isAnimatingActive) return;
+            if (_systemScreenSaverIsActive) return;
+            [self systemScreenSaverDidStart:nil];
+        });
+    }
+    [self applyLegacyHostAnimationPolicy];
+    if (!_isWallpaperHost && !_isPreviewHost && _mosaicEnabled && _qualityMosaicEnabled) {
+        [self triggerMosaicWithDuration:_mosaicDuration];
+    }
 }
 
 - (void)stopAnimation
 {
     [super stopAnimation];
+    _isAnimatingActive = NO;
+    _isMosaicMode = NO;
+    _mosaicPoints = @[];
+    _mosaicEndTime = 0;
+    _nextMosaicTriggerTime = 0;
+    _isFormingKeyword = NO;
+    [_keywordStreams removeAllObjects];
+    [self unregisterSystemEventObservers];
 }
 
 - (void)drawRect:(NSRect)rect
@@ -532,7 +931,13 @@
     NSColor *matrixGreen = [NSColor colorWithCalibratedRed:0.0 green:1.0 blue:0.4 alpha:1.0];
     NSColor *glitchRed = [NSColor colorWithCalibratedRed:1.0 green:0.2 blue:0.0 alpha:1.0];
     NSColor *whiteColor = [NSColor whiteColor];
+    BOOL allowGlow = !_isWallpaperHost && !_isPreviewHost && _qualityAllowGlow;
     
+    NSMutableDictionary *sharedHeadAttrs = [NSMutableDictionary dictionaryWithCapacity:2];
+    sharedHeadAttrs[NSForegroundColorAttributeName] = whiteColor;
+    
+    NSMutableDictionary *sharedCharAttrs = [NSMutableDictionary dictionaryWithCapacity:2];
+
     for (MatrixStream *stream in _streams) {
         // Optimization: Cull off-screen streams entirely
         if (stream.yPosition > self.bounds.size.height + stream.streamLength * stream.fontSize ||
@@ -541,7 +946,7 @@
         }
 
         // Apply glow only for foreground layers or glitch streams
-        if (stream.zDepth > 0.5 || stream.isGlitch) {
+        if (allowGlow && (stream.zDepth > 0.8 || stream.isGlitch)) {
             [glowShadow setShadowBlurRadius:(stream.zDepth * 5.0) + (stream.isGlitch ? 4.0 : 0.0)];
             // Only set shadow color if it's glitch (default is green)
             if (stream.isGlitch) {
@@ -555,14 +960,12 @@
         }
         
         // Draw Head Character (White + Sparkle)
-        NSDictionary *headAttrs = @{
-            NSFontAttributeName: stream.font,
-            NSForegroundColorAttributeName: whiteColor
-        };
-        [stream.headCharacter drawAtPoint:NSMakePoint(stream.xPosition, stream.yPosition) withAttributes:headAttrs];
+        sharedHeadAttrs[NSFontAttributeName] = stream.font;
+        [stream.headCharacter drawAtPoint:NSMakePoint(stream.xPosition, stream.yPosition) withAttributes:sharedHeadAttrs];
         
         // Draw Body Characters
         NSColor *baseColor = stream.isGlitch ? glitchRed : matrixGreen;
+        sharedCharAttrs[NSFontAttributeName] = stream.font;
         
         for (int i = 0; i < stream.streamLength; i++) {
             CGFloat charY = stream.yPosition + ((i + 1) * stream.fontSize); // Start body after head
@@ -586,21 +989,20 @@
             if (alpha < 0.05) continue;
             
             NSColor *color = [baseColor colorWithAlphaComponent:alpha * brightness];
-            
-            NSDictionary *charAttrs = @{
-                NSFontAttributeName: stream.font,
-                NSForegroundColorAttributeName: color
-            };
+            sharedCharAttrs[NSForegroundColorAttributeName] = color;
             
             NSString *charString = (i < stream.characters.count) ? stream.characters[i] : @"";
-            [charString drawAtPoint:NSMakePoint(stream.xPosition, charY) withAttributes:charAttrs];
+            [charString drawAtPoint:NSMakePoint(stream.xPosition, charY) withAttributes:sharedCharAttrs];
         }
     }
     
     // Draw keyword streams
-    [strongGlowShadow set];
+    if (allowGlow) [strongGlowShadow set];
     
     for (MatrixStream *stream in _keywordStreams) {
+        NSMutableDictionary *keywordAttrs = [NSMutableDictionary dictionaryWithCapacity:2];
+        keywordAttrs[NSFontAttributeName] = stream.font;
+        keywordAttrs[NSForegroundColorAttributeName] = whiteColor;
         for (int i = 0; i < stream.streamLength; i++) {
             CGFloat charY = stream.yPosition + (i * stream.fontSize);
             
@@ -608,13 +1010,8 @@
                 continue;
             }
             
-            NSDictionary *charAttrs = @{
-                NSFontAttributeName: stream.font,
-                NSForegroundColorAttributeName: whiteColor
-            };
-            
             NSString *charString = (i < stream.characters.count) ? stream.characters[i] : @"";
-            [charString drawAtPoint:NSMakePoint(stream.xPosition, charY) withAttributes:charAttrs];
+            [charString drawAtPoint:NSMakePoint(stream.xPosition, charY) withAttributes:keywordAttrs];
         }
     }
     
@@ -623,11 +1020,16 @@
     
     // Draw Mosaic Overlay
     if (_isMosaicMode && _mosaicPoints.count > 0) {
-        [strongGlowShadow set]; // Use strong glow for the text
+        if (allowGlow) [strongGlowShadow set];
         
         NSDictionary *mosaicAttrs = @{
             NSFontAttributeName: _mosaicFont,
-            NSForegroundColorAttributeName: [NSColor greenColor]
+            NSForegroundColorAttributeName: matrixGreen
+        };
+        
+        NSDictionary *shadowAttrs = @{
+            NSFontAttributeName: _mosaicFont,
+            NSForegroundColorAttributeName: [matrixGreen colorWithAlphaComponent:0.4]
         };
         
         // Use a static random character generator or just fixed chars?
@@ -642,6 +1044,13 @@
             if (arc4random_uniform(20) == 0) continue;
             
             NSString *charStr = mosaicChars[arc4random_uniform((uint32_t)mosaicChars.count)];
+            
+            // Draw 3 layers for thickness as requested
+            // Layer 1: Left
+            [charStr drawAtPoint:NSMakePoint(p.x - 5.0, p.y) withAttributes:mosaicAttrs];
+            // Layer 2: Right
+            [charStr drawAtPoint:NSMakePoint(p.x + 5.0, p.y) withAttributes:mosaicAttrs];
+            // Layer 3: Center
             [charStr drawAtPoint:p withAttributes:mosaicAttrs];
         }
         
@@ -651,51 +1060,75 @@
 
 - (void)animateOneFrame
 {
+    if (!_isAnimatingActive) return;
     CGFloat height = self.bounds.size.height;
     NSTimeInterval currentTime = CACurrentMediaTime();
-    
-    // Check if it's time to trigger a Mosaic Quote (every 20s, including start)
-    if (!_isMosaicMode && (currentTime >= _nextMosaicTriggerTime && _nextMosaicTriggerTime != 0)) {
-        // Special handling for the very first frame where currentTime might be close to 0
-        // Or if nextMosaicTriggerTime is set to 0 to trigger immediately.
-        // Actually CACurrentMediaTime() is system uptime, so it's large.
-        // We initialize _nextMosaicTriggerTime to 0. So if we want to trigger on start:
-        // We should set _nextMosaicTriggerTime to currentTime on init?
-        // Let's handle the "first run" logic:
-        if (_nextMosaicTriggerTime == 0) {
-            _nextMosaicTriggerTime = currentTime; // Align to now
-        }
-        
-        if (currentTime >= _nextMosaicTriggerTime) {
-            [self triggerMosaic];
-        }
-    } else if (!_isMosaicMode && _nextMosaicTriggerTime == 0) {
-        // First run catch-all
-        [self triggerMosaic];
-    }
-    
-    if (_isMosaicMode) {
-        // In Mosaic mode, we don't update rain positions (freeze effect)
-        [self setNeedsDisplay:YES];
+    [self maybeAdjustQualityForCPUAtTime:currentTime];
+    if (_isWallpaperHost && !_isPreviewHost && !_systemScreenSaverIsActive) {
+        _lastFrameTimestamp = currentTime;
         return;
+    }
+    NSTimeInterval deltaTime = 0;
+    if (_lastFrameTimestamp > 0) {
+        deltaTime = currentTime - _lastFrameTimestamp;
+    }
+    _lastFrameTimestamp = currentTime;
+    if (deltaTime > 0.25) deltaTime = 0.25;
+    
+    if (_mosaicEnabled && _qualityMosaicEnabled) {
+        if (_isMosaicMode) {
+            if (_mosaicEndTime > 0 && currentTime >= _mosaicEndTime) {
+                [self stopMosaic];
+                _nextMosaicTriggerTime = currentTime + _mosaicInterval;
+                _mosaicEndTime = 0;
+            } else {
+                [self setNeedsDisplay:YES];
+                return;
+            }
+        } else {
+            if (_nextMosaicTriggerTime == 0) {
+                // If it's the first run, trigger immediately (or with a tiny delay)
+                // instead of waiting for the full interval.
+                _nextMosaicTriggerTime = currentTime + 0.1;
+            }
+            if (currentTime >= _nextMosaicTriggerTime) {
+                [self triggerMosaic];
+            }
+        }
+    } else if (_isMosaicMode) {
+        [self stopMosaic];
     }
     
     // Check if 10 seconds have passed for keyword formation (more frequent)
-    if (currentTime - _lastKeywordTime > 10.0 && !_isFormingKeyword) {
+    if (currentTime - _lastKeywordTime > _keywordInterval && !_isFormingKeyword) {
         _isFormingKeyword = YES;
         _lastKeywordTime = currentTime;
         [self formKeyword];
     }
     
+    NSTimeInterval headUpdateInterval = _qualityHeadUpdateInterval;
+    NSTimeInterval bodyUpdateInterval = _qualityBodyUpdateInterval;
+    uint32_t bodyChangeDenominator = _qualityBodyChangeDenominator;
+    
     // Update all streams
     for (MatrixStream *stream in _streams) {
-        [stream updateWithScreenHeight:height];
+        [stream updateWithScreenHeight:height
+                             deltaTime:deltaTime
+                           currentTime:currentTime
+                      headUpdateEvery:headUpdateInterval
+                      bodyUpdateEvery:bodyUpdateInterval
+                  bodyChangeDenominator:bodyChangeDenominator];
     }
     
     // Update keyword streams if forming
     if (_isFormingKeyword) {
         for (MatrixStream *stream in _keywordStreams) {
-            [stream updateWithScreenHeight:height];
+            [stream updateWithScreenHeight:height
+                                 deltaTime:deltaTime
+                               currentTime:currentTime
+                          headUpdateEvery:headUpdateInterval
+                          bodyUpdateEvery:bodyUpdateInterval
+                      bodyChangeDenominator:bodyChangeDenominator];
         }
         
         // Check if keyword streams have fallen off screen

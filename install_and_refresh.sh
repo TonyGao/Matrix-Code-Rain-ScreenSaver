@@ -1,54 +1,49 @@
 #!/bin/bash
 
-# Configuration
-PROJECT_NAME="Matrix Code Rain"
-SAVER_NAME="${PROJECT_NAME}.saver"
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-XCODE_PROJ="${PROJECT_DIR}/Matrix Code Rain/Matrix Code Rain.xcodeproj"
-BIN_DIR="${PROJECT_DIR}/bin"
-DEST_DIR="${HOME}/Library/Screen Savers"
+echo "[1/7] Building project..."
+# Clean build folder first to ensure no stale artifacts
+rm -rf build/
+xcodebuild -project "Matrix Code Rain/Matrix Code Rain.xcodeproj" \
+           -scheme "Matrix Code Rain" \
+           -configuration Release \
+           -derivedDataPath build \
+           clean build
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+echo "[2/7] Syncing to project bin directory..."
+mkdir -p bin
+# Find the built .saver file (handle different possible output paths)
+SAVER_PATH=$(find build -name "Matrix Code Rain.saver" -type d | head -n 1)
 
-echo -e "${GREEN}[1/7] Building project...${NC}"
-mkdir -p "${BIN_DIR}"
-xcodebuild -project "${XCODE_PROJ}" -scheme "${PROJECT_NAME}" -configuration Debug clean build > /dev/null
-
-# Get the actual build directory from xcodebuild
-BUILD_DIR=$(xcodebuild -project "${XCODE_PROJ}" -scheme "${PROJECT_NAME}" -configuration Debug -showBuildSettings | grep -w "BUILT_PRODUCTS_DIR" | awk '{print $3}')
-
-if [ ! -d "${BUILD_DIR}/${SAVER_NAME}" ]; then
-    echo -e "${RED}Build failed! ${SAVER_NAME} not found in ${BUILD_DIR}${NC}"
+if [ -z "$SAVER_PATH" ]; then
+    echo "Error: Could not find built .saver bundle"
     exit 1
 fi
 
-echo -e "${GREEN}[2/7] Syncing to project bin directory...${NC}"
-cp -R "${BUILD_DIR}/${SAVER_NAME}" "${BIN_DIR}/"
+echo "Found built saver at: $SAVER_PATH"
+rm -rf "bin/Matrix Code Rain.saver"
+cp -R "$SAVER_PATH" bin/
 
-echo -e "${GREEN}[3/7] Killing screen saver processes...${NC}"
-killall "ScreenSaverEngine" 2>/dev/null
-killall "legacyScreenSaver" 2>/dev/null
-killall "System Settings" 2>/dev/null
-killall "cfprefsd" 2>/dev/null # Flushes CoreFoundation preferences cache
+echo "[3/7] Killing screen saver processes..."
+killall ScreenSaverEngine 2>/dev/null
+killall legacyScreenSaver 2>/dev/null
+killall cfprefsd 2>/dev/null # Force preference reload
 
-echo -e "${GREEN}[4/7] Removing old screen saver from system...${NC}"
-rm -rf "${DEST_DIR}/${SAVER_NAME}"
+echo "[4/7] Removing old screen saver from system..."
+rm -rf "$HOME/Library/Screen Savers/Matrix Code Rain.saver"
 
-echo -e "${GREEN}[5/7] Installing from bin to system...${NC}"
-mkdir -p "${DEST_DIR}"
-cp -R "${BIN_DIR}/${SAVER_NAME}" "${DEST_DIR}/"
+echo "[5/7] Installing from bin to system..."
+cp -R "bin/Matrix Code Rain.saver" "$HOME/Library/Screen Savers/"
 
-echo -e "${GREEN}[6/7] Touching file to force system refresh...${NC}"
-touch "${DEST_DIR}/${SAVER_NAME}"
+echo "[6/7] Touching file to force system refresh..."
+touch "$HOME/Library/Screen Savers/Matrix Code Rain.saver"
 
-echo -e "${GREEN}[7/7] Creating distribution zip...${NC}"
-cd "${BIN_DIR}"
-zip -qr "${SAVER_NAME}.zip" "${SAVER_NAME}"
-cd "${PROJECT_DIR}"
-echo -e "${GREEN}Zip package created at: ${BIN_DIR}/${SAVER_NAME}.zip${NC}"
+echo "[7/7] Creating distribution zip..."
+rm -f "bin/Matrix Code Rain.saver.zip"
+cd bin
+zip -r "Matrix Code Rain.saver.zip" "Matrix Code Rain.saver"
+cd ..
 
-echo -e "${GREEN}Done! You can now open System Settings to preview.${NC}"
-echo -e "If it still doesn't update, try running: /System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background"
+echo "Zip package created at: $(pwd)/bin/Matrix Code Rain.saver.zip"
+
+echo "Done! You can now open System Settings to preview."
+echo "If it still doesn't update, try running: /System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background"
